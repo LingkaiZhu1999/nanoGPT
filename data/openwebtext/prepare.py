@@ -2,6 +2,19 @@
 # https://github.com/HazyResearch/flash-attention/blob/main/training/src/datamodules/language_modeling_hf.py
 
 import os
+
+# Set all cache directories to avoid saving in home folder - MUST BE SET BEFORE IMPORTS
+CACHE_DIR = '/scratch/work/zhul2/code/nanoGPT/cache'
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Set environment variables to control all HuggingFace cache locations
+os.environ['HF_HOME'] = CACHE_DIR
+os.environ['HF_DATASETS_CACHE'] = os.path.join(CACHE_DIR, 'datasets')
+os.environ['TRANSFORMERS_CACHE'] = os.path.join(CACHE_DIR, 'transformers')
+os.environ['HF_HUB_CACHE'] = os.path.join(CACHE_DIR, 'hub')
+os.environ['HUGGINGFACE_HUB_CACHE'] = os.path.join(CACHE_DIR, 'hub')
+
+# Now import HuggingFace libraries after setting environment variables
 from tqdm import tqdm
 import numpy as np
 import tiktoken
@@ -20,7 +33,8 @@ enc = tiktoken.get_encoding("gpt2")
 
 if __name__ == '__main__':
     # takes 54GB in huggingface .cache dir, about 8M documents (8,013,769)
-    dataset = load_dataset("openwebtext", num_proc=num_proc_load_dataset)
+    dataset = load_dataset("openwebtext", num_proc=num_proc_load_dataset, 
+                           cache_dir=os.path.join(CACHE_DIR, 'datasets'))
 
     # owt by default only contains the 'train' split, so create a test split
     split_dataset = dataset["train"].train_test_split(test_size=0.0005, seed=2357, shuffle=True)
