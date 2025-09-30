@@ -17,6 +17,7 @@ from torch.nn import functional as F
 
 class LayerNorm(nn.Module):
     """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
+    # now it seems that PyTorch does support this, but leaving this here for compatibility
 
     def __init__(self, ndim, bias):
         super().__init__()
@@ -124,8 +125,8 @@ class GPT(nn.Module):
         self.config = config
 
         self.transformer = nn.ModuleDict(dict(
-            wte = nn.Embedding(config.vocab_size, config.n_embd),
-            wpe = nn.Embedding(config.block_size, config.n_embd),
+            wte = nn.Embedding(config.vocab_size, config.n_embd), # word identity token embeddings
+            wpe = nn.Embedding(config.block_size, config.n_embd), # word position embeddings, places in sequences
             drop = nn.Dropout(config.dropout),
             h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f = LayerNorm(config.n_embd, bias=config.bias),
@@ -174,16 +175,17 @@ class GPT(nn.Module):
         pos = torch.arange(0, t, dtype=torch.long, device=device) # shape (t)
 
         # forward the GPT model itself
-        tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd)
-        pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
-        x = self.transformer.drop(tok_emb + pos_emb)
+        tok_emb = self.transformer.wte(idx) # token embeddings of shape (b, t, n_embd) (what)
+        pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd) (where)
+        x = self.transformer.drop(tok_emb + pos_emb) # optional dropout (regularization)
         for block in self.transformer.h:
             x = block(x)
-        x = self.transformer.ln_f(x)
+        x = self.transformer.ln_f(x) # layer norm at the end
 
         if targets is not None:
             # if we are given some desired targets also calculate the loss
-            logits = self.lm_head(x)
+            logits = self.lm_head(x) # logits for the next word (or integer)
+            # probability distribution for the next token over the vocabulary
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
         else:
             # inference-time mini-optimization: only forward the lm_head on the very last position
