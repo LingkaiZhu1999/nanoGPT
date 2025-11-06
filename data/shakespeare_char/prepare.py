@@ -5,6 +5,16 @@ Will save train.bin, val.bin containing the ids, and meta.pkl containing the
 encoder and decoder and some other related info.
 """
 import os
+CACHE_DIR = '/scratch/work/zhul2/code/nanoGPT/cache'
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Set environment variables to control all HuggingFace cache locations
+os.environ['HF_HOME'] = CACHE_DIR
+os.environ['HF_DATASETS_CACHE'] = os.path.join(CACHE_DIR, 'datasets')
+os.environ['TRANSFORMERS_CACHE'] = os.path.join(CACHE_DIR, 'transformers')
+os.environ['HF_HUB_CACHE'] = os.path.join(CACHE_DIR, 'hub')
+os.environ['HUGGINGFACE_HUB_CACHE'] = os.path.join(CACHE_DIR, 'hub')
+
 import pickle
 import requests
 import numpy as np
